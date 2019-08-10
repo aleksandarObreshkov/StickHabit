@@ -20,13 +20,13 @@ public class Goal {
     private String text;
     private int completedSteps;
     private int targetSteps;
-    private ArrayList<String> dateChecked;
+    private ArrayList<String> datesChecked;
 
     public Goal(String text,int target,int completed){
         this.text=text;
         this.targetSteps=target;
         this.completedSteps=completed;
-        dateChecked=new ArrayList<>();
+        datesChecked=new ArrayList<>();
 
     }
 
@@ -55,40 +55,92 @@ public class Goal {
     }
 
     public void addDateChecked(String dateChecked) {
-        this.dateChecked.add(dateChecked);
+        this.datesChecked.add(dateChecked);
     }
 
     public ArrayList<String> getDatesChecked() {
-        return dateChecked;
+        return this.datesChecked;
     }
 
 
     public void removeCheckedDate(){
-        this.dateChecked.remove(dateChecked.size()-1);
+        this.datesChecked.remove(datesChecked.size()-1);
     }
 
     public String getLastDate(){
 
-        if(dateChecked.isEmpty()) {
-            dateChecked.add(MainActivity.getFormattedDate());
+        if(datesChecked.isEmpty()) {
+            datesChecked.add(MainActivity.getFormattedDate());
             return MainActivity.getFormattedDate();
         }
         else{
-            return dateChecked.get(dateChecked.size()-1);
+            return datesChecked.get(datesChecked.size()-1);
 
         }
     }
 
-    public static void writeGoalInFile(String text,int completedSteps, int targetSteps,String date){
+    public static void writeGoalInFile(String text,int completedSteps, int targetSteps,ArrayList<String> dates){
 
         FileWriter writer=null;
         String sFileName=text+".txt";
-        Log.i("Write in file",sFileName);
+
 
         try {
 
             File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
-            Log.i("Write in file",root.getAbsolutePath());
+            if (!root.exists()) {
+                root.mkdirs();
+            }
+
+            File gpxfile = new File(root, sFileName);
+
+
+            Log.i("Write in file",gpxfile.getAbsolutePath());
+            writer = new FileWriter(gpxfile);
+
+
+                writer.append(text);
+                writer.append(":");
+                writer.append(completedSteps+ "/"+targetSteps);
+
+                for (int i=0;i<dates.size();i++){
+                    writer.append("\n");
+                    writer.append(dates.get(i));
+                }
+
+
+
+
+                writer.flush();
+
+
+
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Log.i("Write in file","Error IO");
+        }
+
+
+    }
+
+
+    public static void writeGoalInFile(Goal goal){
+
+
+        String text=goal.getText();
+        int completedSteps=goal.getCompletedSteps();
+        int targetSteps=goal.getTargetSteps();
+        ArrayList<String> dates=goal.getDatesChecked();
+        FileWriter writer=null;
+        String sFileName=text+".txt";
+
+
+        try {
+
+            File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
             if (!root.exists()) {
                 root.mkdirs();
             }
@@ -98,17 +150,18 @@ public class Goal {
             writer = new FileWriter(gpxfile);
 
 
-                writer.append(text);
-                writer.append(":");
-                writer.append(completedSteps+ "/"+targetSteps);
-                writer.append("AT*");
-                writer.append(date);
-                writer.append("*");
+            writer.append(text);
+            writer.append(":");
+            writer.append(completedSteps+ "/"+targetSteps);
+
+            for (int i=0;i<dates.size();i++){
+                writer.append("\n");
+                writer.append(dates.get(i));
+            }
 
 
-                //new goal:5/7AT08/08/2019
-                Log.i("Write in file",writer.toString());
-                writer.flush();
+
+            writer.flush();
 
 
 
@@ -116,7 +169,7 @@ public class Goal {
 
         } catch (IOException e) {
             e.printStackTrace();
-            Log.i("Write in file","Error");
+            Log.i("Write in file","Error IO");
         }
 
 
@@ -127,6 +180,7 @@ public class Goal {
         File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
         File[] filesGoals=root.listFiles();
         ArrayList<String> goalString=new ArrayList<>();
+        ArrayList<Goal> goalsFromFile=new ArrayList<>();
 
 
 
@@ -134,10 +188,14 @@ public class Goal {
         try{
             for (File file:filesGoals) {
                 scan=new Scanner(file);
-                if(scan.hasNext()){
+                while (scan.hasNext()){
                     goalString.add(scan.nextLine());
 
                 }
+
+                Goal tempGoal=decode(goalString);
+                goalsFromFile.add(tempGoal);
+                goalString.clear();
 
             }
 
@@ -155,31 +213,44 @@ public class Goal {
             Log.i("Read goal from file","No files");
         }
 
-        ArrayList<Goal> goalArrayList=new ArrayList<>();
-        try{
 
-            for (String a:goalString) {
-                String goalName=a.substring(0,a.indexOf(":"));
-                int completedNumber=Integer.parseInt(a.substring(a.indexOf(":")+1,a.indexOf("/")));
-                int targetNumber=Integer.parseInt(a.substring(a.indexOf("/")+1,a.indexOf("AT")));
-                String date=a.substring(a.indexOf("*"),a.lastIndexOf("*"));
-                Log.i("Read from file", goalName+completedNumber+targetNumber);
 
-                Goal tempGoal=new Goal(goalName,targetNumber,completedNumber);
-                tempGoal.addDateChecked(date);
-                goalArrayList.add(new Goal(goalName,targetNumber,completedNumber));
 
-            }
-        }catch (Exception e){
-            e.printStackTrace();
-            Log.i("Read from file", "Error");
-            return new ArrayList<>();
-        }
-
-        return goalArrayList;
+        return goalsFromFile;
 
 
     }
+
+    public static Goal decode(ArrayList<String> dataFromFile){
+        Goal tempGoal=null;
+
+        //First line of the txt file represents the goal and completed/target steps
+        String a=dataFromFile.get(0);
+
+        //Separating the name, the completed and the target steps
+        String goalName=a.substring(0,a.indexOf(":"));
+        int completedNumber=Integer.parseInt(a.substring(a.indexOf(":")+1,a.indexOf("/")));
+        int targetNumber=Integer.parseInt(a.substring(a.indexOf("/")+1));
+        tempGoal=new Goal(goalName,targetNumber,completedNumber);
+
+
+
+        //Iterator to input all the dates on which the goal has been done(checked)
+        //starts from 1 to skip the first line
+        for (int i=1;i<dataFromFile.size();i++) {
+            tempGoal.addDateChecked(dataFromFile.get(i));
+        }
+
+
+
+
+
+
+
+        return tempGoal;
+
+    }
+
 
 
 

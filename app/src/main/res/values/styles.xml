@@ -7,6 +7,7 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
 
+
     </style>
 
     <style name="IvaTheme" parent="Theme.MaterialComponents.NoActionBar">
@@ -19,8 +20,15 @@
         <item name="android:background">#424242</item>
     </style>
 
-    <style name="NotificationBar" parent="Theme.MaterialComponents.NoActionBar.Bridge">
-        <item name="android:color">@color/colorPrimaryDark</item>
+
+    <style name="TextInputLayoutStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="hintTextColor">#424242</item>
+        <item name="helperTextTextColor">#424242</item>
+
     </style>
+
+
+
+
 
 </resources>

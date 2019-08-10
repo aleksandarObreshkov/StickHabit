@@ -70,32 +70,32 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-
-        final Goal goal=goals.get(position);
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
+        Goal goal=goals.get(position);
         final ProgressBar progressBar=holder.itemView.findViewById(R.id.progressBar);
         final CheckBox check=holder.itemView.findViewById(R.id.checkBox);
         final TextView habit=holder.itemView.findViewById(R.id.textView);
-
         final String date=MainActivity.getFormattedDate();
-
-        final int step=100/goal.getTargetSteps();
-
-
-
-
+        final int step=100/goals.get(position).getTargetSteps();
 
         habit.setText(goal.getText());
 
-        if(date.equals(goal.getLastDate())){
-            check.setChecked(true);
-            check.setText("Done");
+
+        if(goal.getCompletedSteps()!=goals.get(position).getTargetSteps()) {
+            if (date.equals(goal.getLastDate())) {
+                check.setChecked(true);
+                check.setText("Done");
 
 
+            } else {
+
+                check.setText("Not done");
+
+            }
         }
         else {
-
-            check.setText("Not done");
+            check.setEnabled(false);
+            check.setText("All done");
 
         }
 
@@ -107,36 +107,37 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
         check.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+
                 int progress=progressBar.getProgress();
+                int completedSteps=goals.get(position).getCompletedSteps();
+
+                if(completedSteps!=goals.get(position).getTargetSteps()) {
 
 
-                if(!date.equals(goal.getLastDate())){
-
-                        progressBar.setProgress(progress+step);
+                    if (isChecked) {
+                        progressBar.setProgress(progress + step);
                         check.setText("Done");
-                        goal.addDateChecked(date);
-                        goal.setCompletedSteps(goal.getCompletedSteps()+1);
-
-                    }
+                        goals.get(position).addDateChecked(date);
+                        goals.get(position).setCompletedSteps(completedSteps + 1);
 
 
-                else{
-                    if(isChecked){
-                        progressBar.setProgress(progress+step);
-                        check.setText("Done");
-                        goal.addDateChecked(date);
-                        goal.setCompletedSteps(goal.getCompletedSteps()+1);
-                    }
-
-                    else {
-                        progressBar.setProgress(progress-step);
+                    } else {
+                        progressBar.setProgress(progress - step);
                         check.setText("Not done");
-                        goal.removeCheckedDate();
-                        goal.setCompletedSteps(goal.getCompletedSteps()-1);
+                        goals.get(position).removeCheckedDate();
+                        goals.get(position).setCompletedSteps(completedSteps - 1);
+
 
                     }
                 }
-            }
+                else {
+                    check.setEnabled(false);
+                    check.setText("All done");
+                }
+
+                Log.i("Completed steps update",goals.get(position).getCompletedSteps()+"");
+                }
+
         });
 
 
