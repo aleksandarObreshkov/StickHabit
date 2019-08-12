@@ -41,8 +41,6 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     public HabitsRVAdapter(ArrayList<Goal> goals){
         this.goals=goals;
 
-
-
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
@@ -64,8 +62,6 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view= LayoutInflater.from(parent.getContext()).inflate(R.layout.habit_layout,parent,false);
-
-
         return new ViewHolder(view) ;
     }
 
@@ -73,12 +69,11 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
         Goal goal=goals.get(position);
         final ProgressBar progressBar=holder.itemView.findViewById(R.id.progressBar);
-        final CheckBox check=holder.itemView.findViewById(R.id.checkBox);
-        final TextView habit=holder.itemView.findViewById(R.id.textView);
+
         final String date=MainActivity.getFormattedDate();
         final int step=100/goals.get(position).getTargetSteps();
 
-        habit.setText(goal.getText());
+        habitText.setText(goal.getText());
 
 
         if(goal.getCompletedSteps()!=goals.get(position).getTargetSteps()) {
@@ -116,27 +111,37 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
                     if (isChecked) {
                         progressBar.setProgress(progress + step);
-                        check.setText("Done");
+                        buttonView.setText("Done");
                         goals.get(position).addDateChecked(date);
-                        goals.get(position).setCompletedSteps(completedSteps + 1);
+                        completedSteps+=1;
+
+                        goals.get(position).setCompletedSteps(completedSteps);
+
+
 
 
                     } else {
                         progressBar.setProgress(progress - step);
-                        check.setText("Not done");
+                        buttonView.setText("Not done");
                         goals.get(position).removeCheckedDate();
-                        goals.get(position).setCompletedSteps(completedSteps - 1);
+                        completedSteps-=1;
+
+
+                        goals.get(position).setCompletedSteps(completedSteps);
+
 
 
                     }
                 }
                 else {
-                    check.setEnabled(false);
-                    check.setText("All done");
+                    buttonView.setEnabled(false);
+                    buttonView.setText("All done");
                 }
 
-                Log.i("Completed steps update",goals.get(position).getCompletedSteps()+"");
+
                 }
+
+
 
         });
 

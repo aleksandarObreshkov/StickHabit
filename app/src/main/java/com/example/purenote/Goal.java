@@ -39,15 +39,15 @@ public class Goal {
     }
 
     public int getCompletedSteps() {
-        return completedSteps;
+        return this.completedSteps;
     }
 
-    public void setCompletedSteps(int completedSteps) {
-        this.completedSteps = completedSteps;
+    public void setCompletedSteps(int completed) {
+        this.completedSteps = completed;
     }
 
     public int getTargetSteps() {
-        return targetSteps;
+        return this.targetSteps;
     }
 
     public void setTargetSteps(int targetSteps) {
@@ -64,14 +64,15 @@ public class Goal {
 
 
     public void removeCheckedDate(){
+
         this.datesChecked.remove(datesChecked.size()-1);
     }
 
     public String getLastDate(){
 
         if(datesChecked.isEmpty()) {
-            datesChecked.add(MainActivity.getFormattedDate());
-            return MainActivity.getFormattedDate();
+
+            return "08/6/2001";
         }
         else{
             return datesChecked.get(datesChecked.size()-1);
@@ -85,12 +86,13 @@ public class Goal {
         String sFileName=text+".txt";
 
 
+
         try {
 
             File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
             if (!root.exists()) {
                 root.mkdirs();
-            }
+        }
 
             File gpxfile = new File(root, sFileName);
 
@@ -101,7 +103,8 @@ public class Goal {
 
                 writer.append(text);
                 writer.append(":");
-                writer.append(completedSteps+ "/"+targetSteps);
+                String progress=completedSteps+"/"+targetSteps;
+                writer.append(progress);
 
                 for (int i=0;i<dates.size();i++){
                     writer.append("\n");
@@ -131,6 +134,7 @@ public class Goal {
 
         String text=goal.getText();
         int completedSteps=goal.getCompletedSteps();
+        Log.i("completed steps",completedSteps+"");
         int targetSteps=goal.getTargetSteps();
         ArrayList<String> dates=goal.getDatesChecked();
         FileWriter writer=null;
@@ -146,13 +150,15 @@ public class Goal {
             }
 
             File gpxfile = new File(root, sFileName);
+
             Log.i("Write in file",gpxfile.getAbsolutePath());
             writer = new FileWriter(gpxfile);
 
 
             writer.append(text);
             writer.append(":");
-            writer.append(completedSteps+ "/"+targetSteps);
+            String progress=completedSteps+ "/"+targetSteps;
+            writer.append(progress);
 
             for (int i=0;i<dates.size();i++){
                 writer.append("\n");

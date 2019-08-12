@@ -55,9 +55,8 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
     static ArrayList<Goal> goalsArray=new ArrayList<>();
     FloatingActionButton addGoalButton;
-    private FirebaseAuth mAuth;
+    private FirebaseAuth mAuth=FirebaseAuth.getInstance();
 
-    DateFormat dateFormat=SimpleDateFormat.getDateInstance();
 
     DialogFragment dialog=new AddGoalDialog();
 
@@ -87,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             Intent i=new Intent(MainActivity.this,LoginMenu.class);
             startActivity(i);
         }
+
         goalsArray=Goal.readGoalFromFile();
     }
 
@@ -96,7 +96,8 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         setContentView(R.layout.activity_main);
 
 
-        mAuth=FirebaseAuth.getInstance();
+
+
 
 
 
@@ -137,11 +138,23 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     protected void onStop() {
         super.onStop();
         for (Goal a:goalsArray) {
-            Goal.writeGoalInFile(a.getText(),a.getCompletedSteps(),a.getTargetSteps(),a.getDatesChecked());
-
-
+            Goal.writeGoalInFile(a);
         }
 
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        goalsArray=Goal.readGoalFromFile();
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        goalsArray=Goal.readGoalFromFile();
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
     }
 
     @Override
@@ -198,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                         String goalName = goalInput.getEditText().getText().toString();
                         int targetNumber = Integer.parseInt(targetNumberInput.getEditText().getText().toString());
                         Goal newGoal = new Goal(goalName, targetNumber, 0);
-                        newGoal.addDateChecked("08/06/2019");
                         goalsArray.add(newGoal);
                         goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
                         Goal.writeGoalInFile(goalName, 0, targetNumber, newGoal.getDatesChecked());

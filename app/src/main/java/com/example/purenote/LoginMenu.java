@@ -31,8 +31,8 @@ public class LoginMenu extends AppCompatActivity {
         mAuth=FirebaseAuth.getInstance();
 
         loginButton=findViewById(R.id.button3);
-        loginInput=findViewById(R.id.textInputLayout);
-        passwordInput=findViewById(R.id.textInputLayout2);
+        loginInput=findViewById(R.id.loginInput);
+        passwordInput=findViewById(R.id.passwordInput);
 
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -45,16 +45,17 @@ public class LoginMenu extends AppCompatActivity {
                     mAuth.createUserWithEmailAndPassword(email,password);
                     mAuth.signInWithEmailAndPassword(email,password);
 
+
+                    Intent i=new Intent(LoginMenu.this,MainActivity.class);
+                    startActivity(i);
+
+
                 }catch (NullPointerException npe){
                     npe.printStackTrace();
                     Log.i("Login","Empty field");
                     Snackbar.make(findViewById(R.id.linearLayout2),"Please fill in the required fields!", BaseTransientBottomBar.LENGTH_SHORT).show();
                 }
 
-                if(mAuth.getCurrentUser()!=null){
-                    Intent i=new Intent(LoginMenu.this,MainActivity.class);
-                    startActivity(i);
-                }
 
 
             }
