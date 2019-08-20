@@ -7,6 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -14,15 +15,22 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.Switch;
+import android.widget.Toast;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
@@ -55,16 +63,19 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
     static ArrayList<Goal> goalsArray=new ArrayList<>();
     FloatingActionButton addGoalButton;
-    private FirebaseAuth mAuth=FirebaseAuth.getInstance();
+    private FirebaseAuth auth;
 
 
     DialogFragment dialog=new AddGoalDialog();
+
+
 
 
     public static String getFormattedDate(){
         Date date=new Date();
 
         Calendar calendar=new GregorianCalendar();
+
         String day=calendar.get(Calendar.DAY_OF_MONTH)+"/";
         String month=(calendar.get(Calendar.MONTH)+1)+"/";
         String year=calendar.get(Calendar.YEAR)+"";
@@ -81,11 +92,15 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     @Override
     protected void onStart() {
         super.onStart();
+        FirebaseAuth mAuth=FirebaseAuth.getInstance();
         FirebaseUser user=mAuth.getCurrentUser();
+
+
         if(user==null){
             Intent i=new Intent(MainActivity.this,LoginMenu.class);
             startActivity(i);
         }
+
 
         goalsArray=Goal.readGoalFromFile();
     }
@@ -111,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},5);
         }
 
-
+        auth=FirebaseAuth.getInstance();
         addGoalButton=findViewById(R.id.floatingActionButton);
 
 
@@ -139,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         super.onStop();
         for (Goal a:goalsArray) {
             Goal.writeGoalInFile(a);
+
         }
 
     }
@@ -178,6 +194,9 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         TextInputLayout targetNumberInput;
         Button addButton;
         Button cancelButton;
+        RadioGroup radioGroup;
+
+        RadioButton daily, weekly, monthly, yearly;
 
         @Override
         public void onAttach(Context context) {
@@ -197,10 +216,19 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             builder = new AlertDialog.Builder(getActivity());
             builder.setTitle("Add new goal");
             builder.setView(content);
+
+            radioGroup=content.findViewById(R.id.radioGroup);
+            daily=content.findViewById(R.id.radioButton);
+            weekly=content.findViewById(R.id.radioButton2);
+            monthly=content.findViewById(R.id.radioButton3);
+            yearly=content.findViewById(R.id.radioButton4);
             goalInput = content.findViewById(R.id.textInputLayout);
             targetNumberInput = content.findViewById(R.id.textInputLayout2);
             addButton=content.findViewById(R.id.button2);
             cancelButton=content.findViewById(R.id.button);
+
+
+
 
             addButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -211,12 +239,41 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                         String goalName = goalInput.getEditText().getText().toString();
                         int targetNumber = Integer.parseInt(targetNumberInput.getEditText().getText().toString());
                         Goal newGoal = new Goal(goalName, targetNumber, 0);
+                        if(daily.isChecked()){
+                            newGoal.setRepeatCycle("daily");
+                        }
+
+                        else if(weekly.isChecked()){
+                            newGoal.setRepeatCycle("weekly");
+                        }
+
+                        else if(monthly.isChecked()){
+                            newGoal.setRepeatCycle("monthly");
+                        }
+
+                        else if(yearly.isChecked()){
+                            newGoal.setRepeatCycle("yearly");
+                        }
+
+                        else {
+                            throw  new NullPointerException("No repeat cycle chosen");
+                        }
                         goalsArray.add(newGoal);
                         goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
-                        Goal.writeGoalInFile(goalName, 0, targetNumber, newGoal.getDatesChecked());
+                        Goal.writeGoalInFile(newGoal);
                         dismiss();
-                    }catch (NullPointerException e){
-                        Snackbar.make(content.findViewById(R.id.recyclerView),"Please fill in the fields",BaseTransientBottomBar.LENGTH_SHORT).show();
+                    }catch (NullPointerException e) {
+                        if (e.getMessage() == null) {
+                            Snackbar.make(content.findViewById(R.id.recyclerView), "Please fill in the fields", BaseTransientBottomBar.LENGTH_SHORT).show();
+                        }
+
+                        else {
+                            Toast.makeText(getContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    catch (NumberFormatException nfe){
+                        nfe.printStackTrace();
+                        Toast.makeText(getContext(),"Please fill in the fields",Toast.LENGTH_SHORT).show();
                     }
 
                 }
@@ -237,7 +294,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
 
 
-
+//TODO action bar control
 
 
 

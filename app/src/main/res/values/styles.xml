@@ -1,31 +1,48 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="MainTheme" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="DarkTheme" parent="Theme.MaterialComponents">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-
+        <item name="colorPrimaryDark">@color/colorBackground</item>
+        <item name="actionBarStyle">@style/ActionBarColor</item>
+        <item name="android:textColor">@color/textColorDarkTheme</item>
 
     </style>
 
-    <style name="IvaTheme" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">#7e57c2</item>
-        <item name="colorPrimaryDark">#4d2c91</item>
-        <item name="colorAccent">#0d47a1</item>
+    <style name="CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/colorPrimary</item>
     </style>
 
-    <style name="MainActivityBackground" parent="Theme.MaterialComponents.NoActionBar.Bridge">
-        <item name="android:background">#424242</item>
+    <style name="FloatingActionButtonColor" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="android:background">@color/colorPrimary</item>
     </style>
+
+
+    <style name="ActionBarColor" parent="Widget.MaterialComponents.ActionBar.Primary">
+        <item name="background">@color/actionBarColor</item>
+    </style>
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    <style name="IvaTheme" parent="Theme.MaterialComponents.Light">
+        <item name="colorPrimary">@color/colorPrimaryLightTheme</item>
+        <item name="colorSecondary">@color/colorSecondaryLightTheme</item>
+        <item name="colorAccent">@color/colorAccentLightTheme</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDarkLightTheme</item>
+    </style>
+
 
 
     <style name="TextInputLayoutStyle" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="hintTextColor">#424242</item>
         <item name="helperTextTextColor">#424242</item>
-
+        <item name="boxStrokeColor">@color/colorBackground</item>
     </style>
+
+
+
+
 
 
 

@@ -9,9 +9,11 @@ import android.widget.Button;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
+import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -43,11 +45,18 @@ public class LoginMenu extends AppCompatActivity {
                     String password = passwordInput.getEditText().getText().toString();
 
                     mAuth.createUserWithEmailAndPassword(email,password);
-                    mAuth.signInWithEmailAndPassword(email,password);
+                    mAuth.signInWithEmailAndPassword(email,password).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                        @Override
+                        public void onSuccess(AuthResult authResult) {
+                            Intent i=new Intent(LoginMenu.this,MainActivity.class);
+                            startActivity(i);
+                        }
+                    });
 
 
-                    Intent i=new Intent(LoginMenu.this,MainActivity.class);
-                    startActivity(i);
+
+
+
 
 
                 }catch (NullPointerException npe){

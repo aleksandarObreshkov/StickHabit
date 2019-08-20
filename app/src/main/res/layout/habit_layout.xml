@@ -4,25 +4,23 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="horizontal" android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp">
+    android:layout_margin="8dp"
+    android:elevation="4dp">
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/habitHolderBackground"
         android:layout_width="match_parent"
         android:layout_height="104dp"
-        android:background="@color/colorPrimaryDark"
         android:orientation="horizontal"
-        app:cardBackgroundColor="@color/colorPrimaryDark"
         app:cardCornerRadius="8dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginStart="4dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="4dp"
             android:layout_marginEnd="4dp"
-            android:layout_marginBottom="4dp"
-            android:background="@color/colorDark">
+            android:layout_marginBottom="4dp">
 
             <TextView
                 android:id="@+id/textView"

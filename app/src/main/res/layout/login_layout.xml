@@ -4,7 +4,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#ffffff"
     android:orientation="vertical">
 
     <ImageView
@@ -37,15 +36,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            app:boxStrokeColor="@color/colorDark">
+            >
 
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:hint="@string/hint_username"
-                android:textColor="#000000"
-                android:textColorHint="#424242" />
+                android:hint="@string/hint_username" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -54,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="32dp"
-            app:boxStrokeColor="@color/colorDark">
+            >
 
             <com.google.android.material.textfield.TextInputEditText
                 android:layout_width="match_parent"
@@ -62,8 +59,8 @@
                 android:fontFamily="monospace"
                 android:hint="@string/hint_password"
                 android:inputType="textPassword"
-                android:textColor="#000000"
-                android:textColorHint="#424242" />
+
+                 />
         </com.google.android.material.textfield.TextInputLayout>
     </LinearLayout>
 

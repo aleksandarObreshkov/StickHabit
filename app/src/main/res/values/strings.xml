@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">StickHabit</string>
+    <string name="app_name">STICKHABIT</string>
     <string name="add_button">Add</string>
     <string name="cancel_button">Cancel</string>
     <string name="hint_username">Username</string>

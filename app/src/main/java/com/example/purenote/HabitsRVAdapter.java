@@ -1,5 +1,8 @@
 package com.example.purenote;
 
+import android.animation.TypeConverter;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -7,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
+import android.widget.Switch;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -32,8 +36,13 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     ProgressBar progressBar;
     CheckBox check;
     MaterialCardView background;
+    Switch daily, weekly, monthly, yearly;
 
     ArrayList<Goal> goals;
+
+
+
+
 
 
 
@@ -56,6 +65,8 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
 
 
+
+
         }
     }
     @NonNull
@@ -66,18 +77,28 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     }
 
     @Override
-    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, final int position) {
-        Goal goal=goals.get(position);
+    public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
+        final Goal goal=goals.get(position);
         final ProgressBar progressBar=holder.itemView.findViewById(R.id.progressBar);
 
-        final String date=MainActivity.getFormattedDate();
+        final String currentDate=MainActivity.getFormattedDate();
         final int step=100/goals.get(position).getTargetSteps();
 
-        habitText.setText(goal.getText());
 
+        boolean shouldRefresh=Goal.compareDates(goal);
+
+
+
+
+        habitText.setText(goal.getText());
+        if(shouldRefresh){
+            goal.setCompletedSteps(0);
+            check.setChecked(false);
+            progressBar.setProgress(0);
+        }
 
         if(goal.getCompletedSteps()!=goals.get(position).getTargetSteps()) {
-            if (date.equals(goal.getLastDate())) {
+            if (currentDate.equals(goal.getLastDate())) {
                 check.setChecked(true);
                 check.setText("Done");
 
@@ -89,10 +110,15 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
             }
         }
         else {
-            check.setEnabled(false);
+
+            check.setClickable(false);
             check.setText("All done");
+            check.setChecked(true);
 
         }
+
+
+
 
         progressBar.setProgress(step*goal.getCompletedSteps());
 
@@ -112,10 +138,11 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                     if (isChecked) {
                         progressBar.setProgress(progress + step);
                         buttonView.setText("Done");
-                        goals.get(position).addDateChecked(date);
+                        goals.get(position).addDateChecked(currentDate);
                         completedSteps+=1;
 
                         goals.get(position).setCompletedSteps(completedSteps);
+                        Log.i("Checking", goals.get(position).getLastDate());
 
 
 
@@ -131,11 +158,17 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
 
 
+
+
+
                     }
                 }
                 else {
-                    buttonView.setEnabled(false);
+                    buttonView.setChecked(true);
                     buttonView.setText("All done");
+                    goals.get(position).setDone(true);
+
+
                 }
 
 
@@ -148,10 +181,16 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
 
 
+
+
+
     }
 
     @Override
     public int getItemCount() {
         return goals.size();
     }
+
+
+
 }
