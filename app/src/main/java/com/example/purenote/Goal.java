@@ -14,6 +14,8 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
+import java.io.BufferedWriter;
+import java.io.CharArrayReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -35,10 +37,10 @@ public class Goal {
 
 
 
-    public Goal(String text,int target,int completed){
+    public Goal(String text,int target){
         this.text=text;
         this.targetSteps=target;
-        this.completedSteps=completed;
+        this.completedSteps=0;
         datesChecked=new ArrayList<>();
 
     }
@@ -69,7 +71,7 @@ public class Goal {
     }
 
     public int getCompletedSteps() {
-        return this.completedSteps;
+        return this.datesChecked.size();
     }
 
     public void setCompletedSteps(int completed) {
@@ -168,15 +170,22 @@ public class Goal {
     public static void writeGoalInFile(Goal goal){
 
 
+
+
+
+
         String text=goal.getText();
-        int completedSteps=goal.getCompletedSteps();
-        Log.i("completed steps",completedSteps+"");
         int targetSteps=goal.getTargetSteps();
         ArrayList<String> dates=goal.getDatesChecked();
         FileWriter writer=null;
         String repeatCycle=goal.getRepeatCycle();
         String sFileName=text+".txt";
         boolean done=goal.isDone();
+
+
+
+
+
 
 
         try {
@@ -189,32 +198,29 @@ public class Goal {
 
             File gpxfile = new File(root, sFileName);
 
+
             Log.i("Write in file",gpxfile.getAbsolutePath());
-            writer = new FileWriter(gpxfile);
+            writer = new FileWriter(gpxfile, true);
 
-
-            writer.append(text);
-            writer.append(":");
-            String progress=completedSteps+ "/"+targetSteps;
-            writer.append(progress);
-
-            writer.append("\n");
-            writer.append(repeatCycle);
-
-
-            for (int i=0;i<dates.size();i++){
+            if(goal.datesChecked.isEmpty()){
+                writer.append(text);
+                writer.append(":");
+                writer.append(targetSteps+"");
                 writer.append("\n");
-                writer.append(dates.get(i));
-                Log.i("Dates to write", dates.get(i));
+                writer.append(repeatCycle);
             }
+
+
+
+                writer.append("\n");
+                writer.append(goal.getLastDate());
+                Log.i("Dates to write", goal.getLastDate());
+
 
             if (done||Goal.compareDates(goal)){
                 writer.append("\n");
                 writer.append("-");
             }
-
-
-
 
 
 
@@ -224,7 +230,7 @@ public class Goal {
 
             writer.close();
 
-            Goal.uploadFile(gpxfile);
+            //Goal.uploadFile(gpxfile);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -290,32 +296,34 @@ public class Goal {
 
 
 
-        //Separating the name, the completed and the target steps
+        //Separating the name and the target steps
         String goalName=a.substring(0,a.indexOf(":"));
-        int completedNumber=Integer.parseInt(a.substring(a.indexOf(":")+1,a.indexOf("/")));
-        int targetNumber=Integer.parseInt(a.substring(a.indexOf("/")+1));
+        int targetNumber=Integer.parseInt(a.substring(a.indexOf(":")+1));
         String repeatCycle=dataFromFile.get(1);
-        tempGoal=new Goal(goalName,targetNumber,completedNumber);
+        tempGoal=new Goal(goalName,targetNumber);
         tempGoal.setRepeatCycle(repeatCycle);
 
 
 
-        ArrayList<String> tempDates=new ArrayList<>();
+
 
 
 
         //Iterator to input all the dates on which the goal has been done(checked)
         //starts from 2 to skip the first two lines, which include the name, the progress,  and the repeat cycle
 
-        for (int i=2;i<dataFromFile.size();i++){
+        int i=dataFromFile.size()-1;
+        if (!dataFromFile.get(i).equals("-")) {
+            while (!dataFromFile.get(i).equals("-")) {
 
 
-
-                if (!dataFromFile.get(i).equals("-")){
                     tempGoal.addDateChecked(dataFromFile.get(i));
-                }
-                Log.i("Read from file", "Dates:"+dataFromFile.get(i));
+                    i--;
 
+
+                Log.i("Read from file", "Dates:" + dataFromFile.get(i));
+
+            }
         }
 
 
@@ -376,6 +384,7 @@ public class Goal {
         if (!datesChecked.isEmpty()) {
             String repeatCycle = goal.getRepeatCycle();
             String firstDate = datesChecked.get(allDatesNumber - progress);
+            String currentDate=MainActivity.getFormattedDate();
             Log.i("first date", firstDate);
 
 
@@ -383,37 +392,75 @@ public class Goal {
             int month = Integer.parseInt(firstDate.substring(firstDate.indexOf("/") + 1, firstDate.lastIndexOf("/")));
             int year = Integer.parseInt(firstDate.substring(firstDate.lastIndexOf("/") + 1));
 
-            Calendar tempCal = Calendar.getInstance();
-            tempCal.setTime(new Date());
+
+            int currentDay = Integer.parseInt(currentDate.substring(0, currentDate.indexOf("/")));
+            int currentMonth = Integer.parseInt(currentDate.substring(firstDate.indexOf("/") + 1, currentDate.lastIndexOf("/")));
+            int currentYear = Integer.parseInt(currentDate.substring(currentDate.lastIndexOf("/") + 1));
+
+
 
 
             if (repeatCycle.equals("daily")) {
-                if (day > Calendar.DAY_OF_WEEK-1) return true;
+                if(month==currentMonth){
+                    if(day<currentDay){
+                        return true;
+                    }
+                }
+                else {
+                    if (day>currentDay) return true;
+                }
             }
 
             if (repeatCycle.equals("weekly")){
-                int lastweek = Calendar.DAY_OF_WEEK - 7;
-                if(day>lastweek) return true;
+
+                switch (month%2){
+                    case 1:{
+                        if(currentMonth!=month){
+                            if(31-day+currentDay>=7)return true;
+                        }
+                        else {
+                            if(currentDay-day>=7)return true;
+                        }
+                    }
+
+                    case 0:{
+                        //TODO list cases with february
+
+                        if(month==8){
+                            if(currentMonth!=month){
+                                if(31-day+currentDay>=7)return true;
+                            }
+                            else {
+                                if(currentDay-day>=7)return true;
+                            }
+                        }
+                        if(currentMonth!=month){
+                            if(30-day+currentDay>=7)return true;
+                        }
+                        else {
+                            if(currentDay-day>=7)return true;
+                        }
+                    }
+
+
+
+                }
             }
 
 
             if (repeatCycle.equals("monthly")){
-                int lastMonth = Calendar.MONTH-1;
-                if(month>lastMonth) return true;
+
+                    if((day<currentDay)&&(month!=currentMonth)){
+                        return true;
+                    }
+
             }
 
             if (repeatCycle.equals("yearly")){
-                int lastYear=Calendar.YEAR-1;
-                if(year>lastYear)return true;
+
+                if((year<currentYear)&&((month<=currentMonth)||(day<=currentDay)))return true;
             }
 
-
-
-
-            // Get current date
-
-
-            // 7 days ago
 
 
 

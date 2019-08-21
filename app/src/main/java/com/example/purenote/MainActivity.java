@@ -95,11 +95,13 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         FirebaseAuth mAuth=FirebaseAuth.getInstance();
         FirebaseUser user=mAuth.getCurrentUser();
 
-
+        /*
         if(user==null){
             Intent i=new Intent(MainActivity.this,LoginMenu.class);
             startActivity(i);
         }
+        */
+
 
 
         goalsArray=Goal.readGoalFromFile();
@@ -109,6 +111,9 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+
+
 
 
 
@@ -238,7 +243,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                     try {
                         String goalName = goalInput.getEditText().getText().toString();
                         int targetNumber = Integer.parseInt(targetNumberInput.getEditText().getText().toString());
-                        Goal newGoal = new Goal(goalName, targetNumber, 0);
+                        Goal newGoal = new Goal(goalName, targetNumber);
                         if(daily.isChecked()){
                             newGoal.setRepeatCycle("daily");
                         }
