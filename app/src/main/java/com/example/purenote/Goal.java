@@ -27,6 +27,8 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Scanner;
 
+//TODO ima problem s resetwaneto, sled kato e minala primerno sedmica, unchekva poleto, ama ne svalq progresa, a chak sled oshte edin restart
+
 public class Goal {
     private String text;
     private int completedSteps;
@@ -34,6 +36,8 @@ public class Goal {
     private ArrayList<String> datesChecked;
     private String repeatCycle;
     private boolean done;
+    private boolean checked;
+    private String lastDateChecked;
 
 
 
@@ -42,7 +46,27 @@ public class Goal {
         this.targetSteps=target;
         this.completedSteps=0;
         datesChecked=new ArrayList<>();
+        this.checked=false;
 
+    }
+
+    public void setLastDateChecked(String lastDateChecked) {
+        this.lastDateChecked = lastDateChecked;
+    }
+
+    public String getLastDateChecked() {
+        if(this.lastDateChecked==null){
+            return "";
+        }
+        return lastDateChecked;
+    }
+
+    public boolean isChecked() {
+        return checked;
+    }
+
+    public void setChecked(boolean checked) {
+        this.checked = checked;
     }
 
     public boolean isDone() {
@@ -114,60 +138,9 @@ public class Goal {
         }
     }
 
-    public static void writeGoalInFile(String text,int completedSteps, int targetSteps,ArrayList<String> dates, String repeatCycle){
-
-        FileWriter writer=null;
-        String sFileName=text+".txt";
 
 
-
-        try {
-
-            File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
-            if (!root.exists()) {
-                root.mkdirs();
-        }
-
-            File gpxfile = new File(root, sFileName);
-
-
-            Log.i("Write in file",gpxfile.getAbsolutePath());
-            writer = new FileWriter(gpxfile);
-
-
-                writer.append(text);
-                writer.append(":");
-                String progress=completedSteps+"/"+targetSteps;
-                writer.append(progress);
-                writer.append("\n");
-                writer.append(repeatCycle);
-
-                for (int i=0;i<dates.size();i++){
-                    writer.append("\n");
-                    writer.append(dates.get(i));
-                }
-
-
-
-
-                writer.flush();
-
-
-
-            writer.close();
-
-            Goal.uploadFile(gpxfile);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            Log.i("Write in file","Error IO");
-        }
-
-
-    }
-
-
-    public static void writeGoalInFile(Goal goal){
+    public static void writeGoalInFile(Goal goal, int code){
 
 
 
@@ -176,7 +149,6 @@ public class Goal {
 
         String text=goal.getText();
         int targetSteps=goal.getTargetSteps();
-        ArrayList<String> dates=goal.getDatesChecked();
         FileWriter writer=null;
         String repeatCycle=goal.getRepeatCycle();
         String sFileName=text+".txt";
@@ -199,22 +171,24 @@ public class Goal {
             File gpxfile = new File(root, sFileName);
 
 
-            Log.i("Write in file",gpxfile.getAbsolutePath());
             writer = new FileWriter(gpxfile, true);
 
-            if(goal.datesChecked.isEmpty()){
+            if(code==1){
                 writer.append(text);
                 writer.append(":");
                 writer.append(targetSteps+"");
                 writer.append("\n");
                 writer.append(repeatCycle);
+                //dates start from here
+                writer.append("\n");
+                writer.append("-");
             }
 
-
-
+            if (code==2&&goal.isChecked()){
                 writer.append("\n");
                 writer.append(goal.getLastDate());
-                Log.i("Dates to write", goal.getLastDate());
+            }
+
 
 
             if (done||Goal.compareDates(goal)){
@@ -230,7 +204,6 @@ public class Goal {
 
             writer.close();
 
-            //Goal.uploadFile(gpxfile);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -309,20 +282,30 @@ public class Goal {
 
 
 
-        //Iterator to input all the dates on which the goal has been done(checked)
-        //starts from 2 to skip the first two lines, which include the name, the progress,  and the repeat cycle
+
 
         int i=dataFromFile.size()-1;
-        if (!dataFromFile.get(i).equals("-")) {
-            while (!dataFromFile.get(i).equals("-")) {
 
-
+        if(dataFromFile.get(i).equals("-")){
+            String tempString=dataFromFile.get(i-1);
+            if(!tempString.equals("daily")&&
+                    !tempString.equals("weekly")&&
+                    !tempString.equals("monthly")&&
+                    !tempString.equals("yearly")){
+                tempGoal.setLastDateChecked(tempString);
+            }
+            else {
+                tempGoal.datesChecked=new ArrayList<>();
+            }
+        }
+        else {
+            while (true){
+                Log.i("Data from file", dataFromFile.get(i));
+                if(dataFromFile.get(i).equals("-"))break;
+                else {
                     tempGoal.addDateChecked(dataFromFile.get(i));
                     i--;
-
-
-                Log.i("Read from file", "Dates:" + dataFromFile.get(i));
-
+                }
             }
         }
 
@@ -394,7 +377,7 @@ public class Goal {
 
 
             int currentDay = Integer.parseInt(currentDate.substring(0, currentDate.indexOf("/")));
-            int currentMonth = Integer.parseInt(currentDate.substring(firstDate.indexOf("/") + 1, currentDate.lastIndexOf("/")));
+            int currentMonth = Integer.parseInt(currentDate.substring(currentDate.indexOf("/") + 1, currentDate.lastIndexOf("/")));
             int currentYear = Integer.parseInt(currentDate.substring(currentDate.lastIndexOf("/") + 1));
 
 
@@ -450,9 +433,14 @@ public class Goal {
 
             if (repeatCycle.equals("monthly")){
 
-                    if((day<currentDay)&&(month!=currentMonth)){
-                        return true;
-                    }
+                if(currentMonth!=month){
+                    if(31-day+currentDay>=30)return true;
+                }
+                else {
+                    if(currentDay-day>=30)return true;
+                }
+
+
 
             }
 

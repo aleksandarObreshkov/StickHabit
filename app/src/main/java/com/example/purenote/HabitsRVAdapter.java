@@ -95,32 +95,42 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
             goal.setCompletedSteps(0);
             check.setChecked(false);
             progressBar.setProgress(0);
+
         }
 
-        if(goal.getCompletedSteps()!=goals.get(position).getTargetSteps()) {
-            if (currentDate.equals(goal.getLastDate())) {
-                check.setChecked(true);
-                check.setText("Done");
+        if(goal.getLastDateChecked().equals(currentDate)){
+            check.setChecked(true);
+            check.setText("All done");
+            progressBar.setProgress(100);
+        }else {
+
+            if (goal.getCompletedSteps() != goals.get(position).getTargetSteps()) {
+                if (currentDate.equals(goal.getLastDate())) {
+
+                    check.setChecked(true);
+                    check.setText("Done");
 
 
+                } else {
+
+                    check.setText("Not done");
+
+
+                }
             } else {
 
-                check.setText("Not done");
+                check.setClickable(false);
+                check.setText("All done");
+                check.setChecked(true);
 
             }
-        }
-        else {
-
-            check.setClickable(false);
-            check.setText("All done");
-            check.setChecked(true);
-
+            progressBar.setProgress(step*goal.getCompletedSteps());
         }
 
 
 
 
-        progressBar.setProgress(step*goal.getCompletedSteps());
+
 
 
 
@@ -140,9 +150,9 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                         buttonView.setText("Done");
                         goals.get(position).addDateChecked(currentDate);
                         completedSteps+=1;
-
                         goals.get(position).setCompletedSteps(completedSteps);
                         Log.i("Checking", goals.get(position).getLastDate());
+                        goal.setChecked(true);
 
 
 
@@ -152,6 +162,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                         buttonView.setText("Not done");
                         goals.get(position).removeCheckedDate();
                         completedSteps-=1;
+                        goal.setChecked(false);
 
 
                         goals.get(position).setCompletedSteps(completedSteps);

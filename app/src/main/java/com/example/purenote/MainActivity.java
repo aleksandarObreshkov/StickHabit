@@ -158,7 +158,10 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     protected void onStop() {
         super.onStop();
         for (Goal a:goalsArray) {
-            Goal.writeGoalInFile(a);
+
+            if(!a.getDatesChecked().isEmpty()) {
+                Goal.writeGoalInFile(a, 2);
+            }
 
         }
 
@@ -265,7 +268,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                         }
                         goalsArray.add(newGoal);
                         goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
-                        Goal.writeGoalInFile(newGoal);
+                        Goal.writeGoalInFile(newGoal,1);
                         dismiss();
                     }catch (NullPointerException e) {
                         if (e.getMessage() == null) {
