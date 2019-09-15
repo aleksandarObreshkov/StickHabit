@@ -44,8 +44,8 @@ public class LoginMenu extends AppCompatActivity {
                     String email = loginInput.getEditText().getText().toString();
                     String password = passwordInput.getEditText().getText().toString();
 
-                    mAuth.createUserWithEmailAndPassword(email,password);
-                    mAuth.signInWithEmailAndPassword(email,password).addOnSuccessListener(new OnSuccessListener<AuthResult>() {
+                    //mAuth.createUserWithEmailAndPassword(email,password);
+                    mAuth.signInWithEmailAndPassword("aleks.yasuo@gmail.com","0092aleks").addOnSuccessListener(new OnSuccessListener<AuthResult>() {
                         @Override
                         public void onSuccess(AuthResult authResult) {
                             Intent i=new Intent(LoginMenu.this,MainActivity.class);

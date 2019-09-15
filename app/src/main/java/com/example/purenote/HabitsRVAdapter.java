@@ -1,30 +1,37 @@
 package com.example.purenote;
 
-import android.animation.TypeConverter;
-import android.content.res.ColorStateList;
-import android.graphics.Color;
+
+import android.app.Activity;
+
+import android.app.AlertDialog;
+import android.app.Dialog;
+import android.content.Context;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ProgressBar;
-import android.widget.Switch;
+import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputLayout;
 
-import org.w3c.dom.Text;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
+
+interface DisplayGoalData{
+    android.app.FragmentManager displayGoalData();
+}
 
 public class HabitsRVAdapter extends RecyclerView.Adapter {
 
@@ -36,19 +43,27 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     ProgressBar progressBar;
     CheckBox check;
     MaterialCardView background;
-    Switch daily, weekly, monthly, yearly;
 
-    ArrayList<Goal> goals;
+    static ArrayList<Goal> goals;
 
-
-
-
+    private DisplayGoalData callerActivity;
+    android.app.DialogFragment dialog=new DisplayGoalDataDialog();
 
 
 
 
-    public HabitsRVAdapter(ArrayList<Goal> goals){
+
+
+
+
+
+
+
+
+
+    public HabitsRVAdapter(ArrayList<Goal> goals, Activity activity){
         this.goals=goals;
+        callerActivity=(DisplayGoalData) activity;
 
     }
 
@@ -58,7 +73,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
         public ViewHolder(View itemView) {
             super(itemView);
 
-            background=itemView.findViewById(R.id.habitHolderBackground);
+            background=itemView.findViewById(R.id.habitCard);
             progressBar=itemView.findViewById(R.id.progressBar);
             check=itemView.findViewById(R.id.checkBox);
             habitText=itemView.findViewById(R.id.textView);
@@ -80,9 +95,9 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder holder, final int position) {
         final Goal goal=goals.get(position);
         final ProgressBar progressBar=holder.itemView.findViewById(R.id.progressBar);
-
         final String currentDate=MainActivity.getFormattedDate();
         final int step=100/goals.get(position).getTargetSteps();
+        final CheckBox checkBox=holder.itemView.findViewById(R.id.checkBox);
 
 
         boolean shouldRefresh=Goal.compareDates(goal);
@@ -93,40 +108,39 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
         habitText.setText(goal.getText());
         if(shouldRefresh){
             goal.setCompletedSteps(0);
-            check.setChecked(false);
+            checkBox.setChecked(false);
             progressBar.setProgress(0);
 
         }
 
         if(goal.getLastDateChecked().equals(currentDate)){
-            check.setChecked(true);
-            check.setText("All done");
+            checkBox.setChecked(true);
+            checkBox.setText("All done");
             progressBar.setProgress(100);
         }else {
 
             if (goal.getCompletedSteps() != goals.get(position).getTargetSteps()) {
                 if (currentDate.equals(goal.getLastDate())) {
 
-                    check.setChecked(true);
-                    check.setText("Done");
+                    checkBox.setChecked(true);
+                    checkBox.setText("Done");
 
 
                 } else {
 
-                    check.setText("Not done");
+                    checkBox.setText("Not done");
 
 
                 }
             } else {
 
-                check.setClickable(false);
-                check.setText("All done");
-                check.setChecked(true);
+                checkBox.setClickable(false);
+                checkBox.setText("All done");
+                checkBox.setChecked(true);
 
             }
             progressBar.setProgress(step*goal.getCompletedSteps());
         }
-
 
 
 
@@ -151,7 +165,6 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                         goals.get(position).addDateChecked(currentDate);
                         completedSteps+=1;
                         goals.get(position).setCompletedSteps(completedSteps);
-                        Log.i("Checking", goals.get(position).getLastDate());
                         goal.setChecked(true);
 
 
@@ -163,6 +176,9 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                         goals.get(position).removeCheckedDate();
                         completedSteps-=1;
                         goal.setChecked(false);
+                        if(!goal.getDatesChecked().isEmpty()) {
+                            goal.deleteLastDateFromFile();
+                        }
 
 
                         goals.get(position).setCompletedSteps(completedSteps);
@@ -189,6 +205,30 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
         });
 
+        background.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                android.app.FragmentManager manager=callerActivity.displayGoalData();
+
+                Bundle bundle=new Bundle();
+
+                bundle.putBoolean("checked",checkBox.isChecked());
+                bundle.putInt("progressInt",progressBar.getProgress());
+                bundle.putInt("position", position);
+
+
+                dialog.setArguments(bundle);
+
+                dialog.show(manager,"tag");
+
+
+
+            }
+        });
+
+
+
+
 
 
 
@@ -201,6 +241,205 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     public int getItemCount() {
         return goals.size();
     }
+
+
+    public static class  DisplayGoalDataDialog extends android.app.DialogFragment {
+        NoticeDialogListener mListener;
+        AlertDialog.Builder builder;
+        Bundle dialogBundle;
+
+        TextInputLayout goalNameInput;
+        TextView progressTextView;
+        Spinner spinner;
+        CheckBox checkBox;
+        ProgressBar progressBar;
+        Button buttonSave, buttonCancel, buttonDelete;
+
+
+        String goalName;
+
+        boolean checked;
+
+        int completedSteps;
+        int targetSteps;
+        String repeatCycle;
+
+        int position, progress;
+
+        String progressText;
+
+
+
+        @Override
+        public void onAttach(Context context) {
+            super.onAttach(context);
+            try {
+                mListener = (NoticeDialogListener) context;
+            } catch (Exception e) {
+                throw new ClassCastException(context.toString() + "must implement NoticeDialogListener");
+            }
+        }
+
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            final View content = inflater.inflate(R.layout.goal_preview_dialog, null);
+            dialogBundle=new Bundle();
+            builder = new AlertDialog.Builder(getActivity());
+            builder.setTitle("Details");
+            builder.setView(content);
+            dialogBundle=getArguments();
+
+
+
+
+            goalNameInput = content.findViewById(R.id.textInputLayout4);
+            progressTextView = content.findViewById(R.id.progressTextView);
+            spinner = content.findViewById(R.id.spinner);
+            checkBox = content.findViewById(R.id.checkBox2);
+            progressBar = content.findViewById(R.id.progressBar2);
+            buttonSave = content.findViewById(R.id.button4);
+            buttonCancel = content.findViewById(R.id.button5);
+            buttonDelete=content.findViewById(R.id.button6);
+
+
+            final ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                    R.array.repeatCycle, android.R.layout.simple_spinner_item);
+
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+            spinner.setAdapter(adapter);
+
+
+
+
+            position=dialogBundle.getInt("position");
+            checked=dialogBundle.getBoolean("checked");
+            progress=dialogBundle.getInt("progressInt");
+            final Goal goal=goals.get(position);
+
+
+
+            goalName=goal.getText();
+            completedSteps=goal.getCompletedSteps();
+            targetSteps=goal.getTargetSteps();
+            repeatCycle=goal.getRepeatCycle();
+
+
+
+            progressText=completedSteps+"/"+targetSteps;
+
+            progressBar.setProgress(progress);
+            progressTextView.setText(progressText);
+            checkBox.setChecked(checked);
+
+            if (checkBox.isChecked())checkBox.setText("Done");
+            else checkBox.setText("Not done");
+            goalNameInput.getEditText().setText(goalName);
+            goalNameInput.clearFocus();
+
+
+
+
+            buttonCancel.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    getDialog().dismiss();
+                }
+            });
+
+            buttonSave.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+
+                    String editText=goalNameInput.getEditText().getText().toString();
+                    String newRepeatCycle=spinner.getSelectedItem().toString();
+
+                    Log.i("Repeat", newRepeatCycle);
+
+
+
+
+                    if (!repeatCycle.equals(newRepeatCycle)){
+                        goal.setRepeatCycle(newRepeatCycle);
+                        goal.changeRepeatCycle(newRepeatCycle);
+                    }
+
+                    if(!editText.equals(goal.getText())&&!editText.equals("")){
+                        boolean result=goal.changeGoalNameInFile(editText);
+                        goal.setText(editText);
+                        if (result){
+                            MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals,getActivity()));
+                        }
+                        goal.uploadFile();
+                        getDialog().dismiss();
+                    }
+
+
+
+
+
+                    if (editText.equals("")){
+                        goalNameInput.setErrorEnabled(true);
+                        goalNameInput.setError("Please write a name for the goal");
+                    }
+
+                    else {
+                        getDialog().dismiss();
+                    }
+                }
+            });
+
+            buttonDelete.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    boolean isDeleted=goal.deleteFile();
+                    goals.remove(position);
+                    MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals, getActivity()));
+
+                    String message;
+                    if (isDeleted)message="File deleted";
+                    else message="File not deleted";
+
+                    Snackbar.make(getActivity().findViewById(R.id.recyclerView), message, BaseTransientBottomBar.LENGTH_SHORT).show();
+                    getDialog().dismiss();
+
+
+                }
+            });
+
+            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                    if (isChecked){
+                        checkBox.setText("Done");
+                        completedSteps+=1;
+                        Log.i("completedSteps", completedSteps+"");
+                        progressText=completedSteps+"/"+targetSteps;
+                        progressTextView.setText(progressText);
+                    }
+                    else{
+                        checkBox.setText("Not done");
+                        completedSteps-=1;
+                        Log.i("completedSteps", completedSteps+"");
+                        progressText=completedSteps+"/"+targetSteps;
+                        progressTextView.setText(progressText);
+                    }
+                }
+            });
+
+
+
+
+
+            return builder.create();
+        }
+    }
+
+
+
+
+
 
 
 

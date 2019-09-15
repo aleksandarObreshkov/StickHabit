@@ -1,16 +1,21 @@
 package com.example.purenote;
 
+import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
 
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.ListResult;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
@@ -25,6 +30,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Scanner;
 
 //TODO ima problem s resetwaneto, sled kato e minala primerno sedmica, unchekva poleto, ama ne svalq progresa, a chak sled oshte edin restart
@@ -38,6 +44,8 @@ public class Goal {
     private boolean done;
     private boolean checked;
     private String lastDateChecked;
+    private StorageReference storageRef=FirebaseStorage.getInstance().getReference();
+    private FirebaseAuth mAuth=FirebaseAuth.getInstance();
 
 
 
@@ -139,7 +147,6 @@ public class Goal {
     }
 
 
-
     public static void writeGoalInFile(Goal goal, int code){
 
 
@@ -175,25 +182,28 @@ public class Goal {
 
             if(code==1){
                 writer.append(text);
-                writer.append(":");
+                writer.append("\n");
                 writer.append(targetSteps+"");
                 writer.append("\n");
                 writer.append(repeatCycle);
                 //dates start from here
                 writer.append("\n");
                 writer.append("-");
+                writer.append("\n");
             }
 
             if (code==2&&goal.isChecked()){
-                writer.append("\n");
                 writer.append(goal.getLastDate());
+                writer.append("\n");
             }
+
 
 
 
             if (done||Goal.compareDates(goal)){
                 writer.append("\n");
                 writer.append("-");
+                writer.append("\n");
             }
 
 
@@ -211,7 +221,13 @@ public class Goal {
         }
 
 
+            goal.uploadFile();
+
+
+
     }
+
+
 
     public static ArrayList<Goal> readGoalFromFile(){
 
@@ -263,16 +279,16 @@ public class Goal {
         Goal tempGoal=null;
 
         //First line of the txt file represents the goal and completed/target steps
-        String a=dataFromFile.get(0);
+
 
 
 
 
 
         //Separating the name and the target steps
-        String goalName=a.substring(0,a.indexOf(":"));
-        int targetNumber=Integer.parseInt(a.substring(a.indexOf(":")+1));
-        String repeatCycle=dataFromFile.get(1);
+        String goalName=dataFromFile.get(0);
+        int targetNumber=Integer.parseInt(dataFromFile.get(1));
+        String repeatCycle=dataFromFile.get(2);
         tempGoal=new Goal(goalName,targetNumber);
         tempGoal.setRepeatCycle(repeatCycle);
 
@@ -300,7 +316,7 @@ public class Goal {
         }
         else {
             while (true){
-                Log.i("Data from file", dataFromFile.get(i));
+
                 if(dataFromFile.get(i).equals("-"))break;
                 else {
                     tempGoal.addDateChecked(dataFromFile.get(i));
@@ -322,41 +338,6 @@ public class Goal {
 
     }
 
-    public static void uploadFile(File fileToUpload){
-
-         FirebaseAuth mAuth=FirebaseAuth.getInstance();
-
-        StorageReference storageFirebase= FirebaseStorage.getInstance().getReference();
-
-        try {
-            Uri file = Uri.fromFile(fileToUpload);
-            StorageReference tempRef = storageFirebase.child(mAuth.getUid());
-
-            tempRef.putFile(file)
-                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            // Get a URL to the uploaded content
-                            Uri downloadUrl = taskSnapshot.getUploadSessionUri();
-                        }
-                    })
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception exception) {
-                            // Handle unsuccessful uploads
-                            // ...
-                        }
-                    });
-        }catch (NullPointerException npe){
-            npe.printStackTrace();
-            Log.i("upload task","geUid returned null");
-        }
-
-        catch (Exception e){
-            e.printStackTrace();
-            Log.i("upload task", "probably no internet");
-        }
-    }
 
     public static boolean compareDates(Goal goal) {
         ArrayList<String> datesChecked = goal.getDatesChecked();
@@ -459,7 +440,313 @@ public class Goal {
         return false;
     }
 
+    public boolean deleteFile() {
 
+        File dir = new File(Environment.getExternalStorageDirectory(),"PureNote");
+        String goalName=this.getText()+".txt";
+        boolean isDeleted=false;
+        if (dir.isDirectory())
+        {
+            String[] children = dir.list();
+            Log.i("Direktory goal", goalName);
+            for (int i = 0; i < children.length; i++)
+            {
+                Log.i("Directory", children[i]);
+
+                if(goalName.equals(children[i])){
+                    isDeleted=new File(dir, children[i]).delete();
+
+                    break;
+                }
+            }
+
+        }
+        return isDeleted;
+
+    }
+
+    public boolean changeGoalNameInFile(String newName){
+
+        boolean result=true;
+        Goal goal=Goal.this;
+        Scanner scan=null;
+        ArrayList<String> goalString=new ArrayList<>();
+
+        File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
+        if (!root.exists()) {
+            root.mkdirs();
+        }
+
+        File file = new File(root, goal.getText()+".txt");
+
+        try{
+                scan=new Scanner(file);
+                while (scan.hasNext()){
+                    goalString.add(scan.nextLine());
+
+                }
+
+                goalString.set(0,newName);
+                file.delete();
+
+
+                File newFile=new File(root, newName+".txt");
+
+                FileWriter writer;
+
+                writer = new FileWriter(newFile);
+
+            for (String a:goalString) {
+                writer.append(a);
+                writer.append("\n");
+            }
+
+            writer.flush();
+            writer.close();
+
+
+
+
+
+            scan.close();
+        }catch (FileNotFoundException e){
+            result=false;
+            e.printStackTrace();
+            Log.i("Change goal name", "File not found");
+
+        }
+        catch (NullPointerException npe){
+            result=false;
+            npe.printStackTrace();
+            Log.i("Change goal name","No files");
+        }
+
+        catch (IOException ioe){
+            result=false;
+            ioe.printStackTrace();
+            Log.i("Change goal name","FileWriter error");
+        }
+
+        return result;
+    }
+
+    public void deleteLastDateFromFile(){
+        Goal goal=Goal.this;
+
+        Scanner scan=null;
+        ArrayList<String> goalString=new ArrayList<>();
+
+        File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
+        if (!root.exists()) {
+            root.mkdirs();
+        }
+
+        File file = new File(root, goal.getText()+".txt");
+
+        try{
+            scan=new Scanner(file);
+            while (scan.hasNext()){
+                goalString.add(scan.nextLine());
+
+            }
+
+            goalString.remove(goalString.size()-1);
+
+            FileWriter writer;
+
+            writer = new FileWriter(file);
+
+            for (String a:goalString) {
+                writer.append(a);
+                writer.append("\n");
+            }
+
+            writer.flush();
+            writer.close();
+
+
+
+
+
+            scan.close();
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+            Log.i("Delete date from file", "File not found");
+
+        }
+        catch (NullPointerException npe){
+            npe.printStackTrace();
+            Log.i("Delete date from file","No files");
+        }
+
+        catch (IOException ioe){
+            ioe.printStackTrace();
+            Log.i("Delete date from file","FileWriter error");
+        }
+
+    }
+
+    public void changeRepeatCycle(String newRepeatCycle){
+
+
+        Goal goal=Goal.this;
+
+        Scanner scan=null;
+        ArrayList<String> goalString=new ArrayList<>();
+
+        File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
+        if (!root.exists()) {
+            root.mkdirs();
+        }
+
+        File file = new File(root, goal.getText()+".txt");
+
+        try{
+            scan=new Scanner(file);
+            while (scan.hasNext()){
+                goalString.add(scan.nextLine());
+
+            }
+
+            goalString.set(2,newRepeatCycle);
+
+            FileWriter writer;
+
+            writer = new FileWriter(file);
+
+            for (String a:goalString) {
+                writer.append(a);
+                writer.append("\n");
+            }
+
+            writer.flush();
+            writer.close();
+
+
+
+
+
+            scan.close();
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+            Log.i("Delete date from file", "File not found");
+
+        }
+        catch (NullPointerException npe){
+            npe.printStackTrace();
+            Log.i("Delete date from file","No files");
+        }
+
+        catch (IOException ioe){
+            ioe.printStackTrace();
+            Log.i("Delete date from file","FileWriter error");
+        }
+    }
+
+    public void uploadFile(){
+
+        Goal goal=Goal.this;
+        File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
+        if (!root.exists()) {
+            root.mkdirs();
+        }
+
+        File file = new File(root, goal.getText()+".txt");
+        Uri fileUri = Uri.fromFile(file);
+        StorageReference goalRef = storageRef.child(mAuth.getCurrentUser().getUid()+"/"+goal.getText()+".txt");
+        Log.i("Upload", mAuth.getCurrentUser().getUid());
+
+        goalRef.putFile(fileUri)
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                        Log.i("Upload", "Successful");
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        // Handle unsuccessful uploads
+                        Log.i("Upload", "Unsuccessful");
+
+                    }
+                });
+    }
+
+    public static  void downloadFile(StorageReference reference, FirebaseAuth auth){
+
+
+
+
+
+            final StorageReference goalRef=reference.child(auth.getCurrentUser().getUid());
+
+
+
+
+               goalRef.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
+                    @Override
+                    public void onSuccess(ListResult listResult) {
+                        Log.i("Download", "Items listed");
+
+                        for (StorageReference item : listResult.getItems()) {
+                            // All the items under listRef.
+                            Log.i("Download", item.toString());
+
+                        }
+                        /*
+                        for (StorageReference a:goalsList) {
+                            String objectString=a.toString();
+                            String goalString=objectString.substring(objectString.lastIndexOf("/"),objectString.lastIndexOf("."));
+                            Log.i("Download", goalString);
+
+                            try {
+                                a.getFile(File.createTempFile(goalString,"txt")).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                                    @Override
+                                    public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+
+                                    }
+                                }).addOnFailureListener(new OnFailureListener() {
+                                    @Override
+                                    public void onFailure(@NonNull Exception e) {
+
+                                    }
+                                });
+                            }
+                            catch (IOException ioe){
+                                ioe.printStackTrace();
+                            }
+
+
+
+                        }
+
+                         */
+
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.i("Download", "Items not listed");
+                        e.printStackTrace();
+                    }
+                });
+
+
+
+
+
+
+
+
+
+
+    }
 
 
 

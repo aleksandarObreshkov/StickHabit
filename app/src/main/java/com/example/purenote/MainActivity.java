@@ -7,59 +7,48 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
+import android.app.FragmentManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.os.Bundle;
-import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CompoundButton;
-import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
-import android.widget.Switch;
+import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.Scanner;
 
 interface NoticeDialogListener{
     void OnPositiveClick(MainActivity.AddGoalDialog dialog);
     void OnNegativeClick(MainActivity.AddGoalDialog dialog);
 }
 
-public class MainActivity extends AppCompatActivity implements NoticeDialogListener {
-    private static RecyclerView goalsLayoutRV;
+public class MainActivity extends AppCompatActivity implements NoticeDialogListener,DisplayGoalData {
+    static RecyclerView goalsLayoutRV;
 
     static ArrayList<Goal> goalsArray=new ArrayList<>();
     FloatingActionButton addGoalButton;
@@ -67,6 +56,12 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
 
     DialogFragment dialog=new AddGoalDialog();
+
+    FirebaseAuth mAuth=FirebaseAuth.getInstance();
+    FirebaseUser user=mAuth.getCurrentUser();
+    StorageReference storageReference= FirebaseStorage.getInstance().getReference();
+
+
 
 
 
@@ -92,19 +87,47 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     @Override
     protected void onStart() {
         super.onStart();
-        FirebaseAuth mAuth=FirebaseAuth.getInstance();
-        FirebaseUser user=mAuth.getCurrentUser();
 
-        /*
+
+
         if(user==null){
             Intent i=new Intent(MainActivity.this,LoginMenu.class);
             startActivity(i);
         }
-        */
+
+
+
+
 
 
 
         goalsArray=Goal.readGoalFromFile();
+    }
+
+
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        menu.add("SignOut");
+        menu.add("Change  theme");
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if(item.getTitle().equals("SignOut")){
+            mAuth.signOut();
+            Intent i=new Intent(MainActivity.this,LoginMenu.class);
+            startActivity(i);
+        }
+
+        if(item.getTitle().equals("Change theme")){
+            getApplicationContext().setTheme(R.style.IvaTheme);
+
+
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -128,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                 != PackageManager.PERMISSION_GRANTED) {
             // Permission is not granted
             ActivityCompat.requestPermissions(MainActivity.this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},5);
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},5);
         }
 
         auth=FirebaseAuth.getInstance();
@@ -137,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
         goalsLayoutRV=findViewById(R.id.recyclerView);
         goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
         goalsLayoutRV.setLayoutManager(new LinearLayoutManager(this));
 
 
@@ -145,7 +168,8 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             @Override
             public void onClick(View v) {
 
-                dialog.show(getFragmentManager(),"Add");
+                //dialog.show(getFragmentManager(),"Add");
+                Goal.downloadFile(storageReference, mAuth);
 
             }
         });
@@ -171,14 +195,14 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     protected void onRestart() {
         super.onRestart();
         goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
     }
 
     @Override
@@ -193,8 +217,14 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
     }
 
+    @Override
+    public FragmentManager displayGoalData() {
+        return getFragmentManager();
 
-    public static class  AddGoalDialog extends DialogFragment {
+    }
+
+
+    public static class  AddGoalDialog extends DialogFragment implements AdapterView.OnItemSelectedListener {
         NoticeDialogListener mListener;
         AlertDialog.Builder builder;
         Bundle dialogBundle;
@@ -202,9 +232,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         TextInputLayout targetNumberInput;
         Button addButton;
         Button cancelButton;
-        RadioGroup radioGroup;
-
-        RadioButton daily, weekly, monthly, yearly;
+        Spinner choices;
 
         @Override
         public void onAttach(Context context) {
@@ -225,15 +253,20 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             builder.setTitle("Add new goal");
             builder.setView(content);
 
-            radioGroup=content.findViewById(R.id.radioGroup);
-            daily=content.findViewById(R.id.radioButton);
-            weekly=content.findViewById(R.id.radioButton2);
-            monthly=content.findViewById(R.id.radioButton3);
-            yearly=content.findViewById(R.id.radioButton4);
+
             goalInput = content.findViewById(R.id.textInputLayout);
             targetNumberInput = content.findViewById(R.id.textInputLayout2);
             addButton=content.findViewById(R.id.button2);
             cancelButton=content.findViewById(R.id.button);
+            choices=content.findViewById(R.id.spinner2);
+
+            ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getContext(),
+                    R.array.repeatCycle, android.R.layout.simple_spinner_item);
+// Specify the layout to use when the list of choices appears
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+// Apply the adapter to the spinner
+            choices.setAdapter(adapter);
+
 
 
 
@@ -247,27 +280,13 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                         String goalName = goalInput.getEditText().getText().toString();
                         int targetNumber = Integer.parseInt(targetNumberInput.getEditText().getText().toString());
                         Goal newGoal = new Goal(goalName, targetNumber);
-                        if(daily.isChecked()){
-                            newGoal.setRepeatCycle("daily");
-                        }
-
-                        else if(weekly.isChecked()){
-                            newGoal.setRepeatCycle("weekly");
-                        }
-
-                        else if(monthly.isChecked()){
-                            newGoal.setRepeatCycle("monthly");
-                        }
-
-                        else if(yearly.isChecked()){
-                            newGoal.setRepeatCycle("yearly");
-                        }
-
-                        else {
-                            throw  new NullPointerException("No repeat cycle chosen");
-                        }
                         goalsArray.add(newGoal);
-                        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+
+
+                        String a="";
+                        a=String.valueOf(choices.getSelectedItem());
+                        newGoal.setRepeatCycle(a);
+                        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,getActivity()));
                         Goal.writeGoalInFile(newGoal,1);
                         dismiss();
                     }catch (NullPointerException e) {
@@ -298,7 +317,21 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
             return builder.create();
         }
+
+        @Override
+        public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+
+        }
+
+        @Override
+        public void onNothingSelected(AdapterView<?> parent) {
+
+        }
     }
+
+
+
+
 
 
 

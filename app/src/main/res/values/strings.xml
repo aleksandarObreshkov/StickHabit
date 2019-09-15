@@ -5,4 +5,12 @@
     <string name="hint_username">Username</string>
     <string name="hint_password">Password</string>
 
+    <string-array name="repeatCycle">
+        <item>Daily</item>
+        <item>Weekly</item>
+        <item>Monthly</item>
+        <item>Yearly</item>
+
+    </string-array>
+
 </resources>
