@@ -21,6 +21,7 @@ import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
@@ -29,9 +30,7 @@ import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 
-interface DisplayGoalData{
-    android.app.FragmentManager displayGoalData();
-}
+
 
 public class HabitsRVAdapter extends RecyclerView.Adapter {
 
@@ -39,38 +38,35 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
 
 
-    TextView habitText;
-    ProgressBar progressBar;
-    CheckBox check;
-    MaterialCardView background;
+    private TextView habitText;
+    private ProgressBar progressBar;
+    private CheckBox check;
+    private MaterialCardView background;
 
-    static ArrayList<Goal> goals;
-
-    private DisplayGoalData callerActivity;
-    android.app.DialogFragment dialog=new DisplayGoalDataDialog();
+    private static ArrayList<Goal> goals;
 
 
+    private android.app.DialogFragment dialog=new DisplayGoalDataDialog();
 
+    private static android.app.FragmentManager currentManager;
 
-
-
-
-
+     static void setCurrentManager(android.app.FragmentManager manager){
+        currentManager=manager;
+    }
 
 
 
 
+    public HabitsRVAdapter(ArrayList<Goal> goal){
+        goals=goal;
 
-    public HabitsRVAdapter(ArrayList<Goal> goals, Activity activity){
-        this.goals=goals;
-        callerActivity=(DisplayGoalData) activity;
 
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    private class ViewHolder extends RecyclerView.ViewHolder {
 
 
-        public ViewHolder(View itemView) {
+        private ViewHolder(View itemView) {
             super(itemView);
 
             background=itemView.findViewById(R.id.habitCard);
@@ -208,7 +204,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
         background.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                android.app.FragmentManager manager=callerActivity.displayGoalData();
+                //android.app.FragmentManager manager=callerActivity.displayGoalData();
 
                 Bundle bundle=new Bundle();
 
@@ -219,7 +215,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
                 dialog.setArguments(bundle);
 
-                dialog.show(manager,"tag");
+                dialog.show(currentManager,"tag");
 
 
 
@@ -244,7 +240,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
 
     public static class  DisplayGoalDataDialog extends android.app.DialogFragment {
-        NoticeDialogListener mListener;
+
         AlertDialog.Builder builder;
         Bundle dialogBundle;
 
@@ -273,11 +269,6 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
         @Override
         public void onAttach(Context context) {
             super.onAttach(context);
-            try {
-                mListener = (NoticeDialogListener) context;
-            } catch (Exception e) {
-                throw new ClassCastException(context.toString() + "must implement NoticeDialogListener");
-            }
         }
 
         @Override
@@ -369,7 +360,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                         boolean result=goal.changeGoalNameInFile(editText);
                         goal.setText(editText);
                         if (result){
-                            MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals,getActivity()));
+                            MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals));
                         }
                         goal.uploadFile();
                         getDialog().dismiss();
@@ -395,7 +386,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                 public void onClick(View v) {
                     boolean isDeleted=goal.deleteFile();
                     goals.remove(position);
-                    MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals, getActivity()));
+                    MainActivity.goalsLayoutRV.setAdapter(new HabitsRVAdapter(goals));
 
                     String message;
                     if (isDeleted)message="File deleted";

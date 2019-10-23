@@ -7,6 +7,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
@@ -14,6 +16,7 @@ import android.app.FragmentManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -23,31 +26,47 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
+import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.List;
+import java.util.Timer;
+import java.util.concurrent.ExecutionException;
 
-interface NoticeDialogListener{
-    void OnPositiveClick(MainActivity.AddGoalDialog dialog);
-    void OnNegativeClick(MainActivity.AddGoalDialog dialog);
-}
 
-public class MainActivity extends AppCompatActivity implements NoticeDialogListener,DisplayGoalData {
+
+
+
+
+
+
+
+
+
+
+public class MainActivity extends AppCompatActivity {
     static RecyclerView goalsLayoutRV;
 
     static ArrayList<Goal> goalsArray=new ArrayList<>();
@@ -59,7 +78,12 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
     FirebaseAuth mAuth=FirebaseAuth.getInstance();
     FirebaseUser user=mAuth.getCurrentUser();
-    StorageReference storageReference= FirebaseStorage.getInstance().getReference();
+    ProgressBar loadingBar;
+    private Boolean isLoading;
+
+
+
+
 
 
 
@@ -95,22 +119,32 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             startActivity(i);
         }
 
-
-
-
-
-
-
         goalsArray=Goal.readGoalFromFile();
+
+        if (goalsArray.isEmpty()) {
+            Goal.downloadFile();
+            Goal.setListener(new Goal.GoalsDownloadedListener() {
+                @Override
+                public void goalsDownloaded(File file) {
+                    goalsArray.add(Goal.singleFileDecode(file));
+                    loadingBar.setVisibility(View.INVISIBLE);
+                    goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+                }
+            });
+
+        }
+
+
+
+
     }
-
-
 
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         menu.add("SignOut");
         menu.add("Change  theme");
+        menu.add("Refresh");
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -127,25 +161,29 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
 
 
         }
+
+
+        if(item.getTitle().equals("Refresh")){
+            goalsArray=Goal.readGoalFromFile();
+            goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
+
+
+        }
         return super.onOptionsItemSelected(item);
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        HabitsRVAdapter.setCurrentManager(this.getFragmentManager());
 
 
-
-
-
-
-
-
-
-
-
-
+        if (user==null){
+            Intent i=new Intent(MainActivity.this, LoginMenu.class);
+            startActivity(i);
+        }
 
         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -157,20 +195,19 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         auth=FirebaseAuth.getInstance();
         addGoalButton=findViewById(R.id.floatingActionButton);
 
-
+        loadingBar=findViewById(R.id.progressBar3);
         goalsLayoutRV=findViewById(R.id.recyclerView);
-        goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
         goalsLayoutRV.setLayoutManager(new LinearLayoutManager(this));
+
+
+
 
 
         addGoalButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                //dialog.show(getFragmentManager(),"Add");
-                Goal.downloadFile(storageReference, mAuth);
-
+                dialog.show(getFragmentManager(),"Add");
             }
         });
 
@@ -195,37 +232,21 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
     protected void onRestart() {
         super.onRestart();
         goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         goalsArray=Goal.readGoalFromFile();
-        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,MainActivity.this));
+        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
     }
 
-    @Override
-    public void OnPositiveClick(AddGoalDialog dialog) {
 
-
-
-    }
-
-    @Override
-    public void OnNegativeClick(AddGoalDialog dialog) {
-
-    }
-
-    @Override
-    public FragmentManager displayGoalData() {
-        return getFragmentManager();
-
-    }
 
 
     public static class  AddGoalDialog extends DialogFragment implements AdapterView.OnItemSelectedListener {
-        NoticeDialogListener mListener;
+
         AlertDialog.Builder builder;
         Bundle dialogBundle;
         TextInputLayout goalInput;
@@ -237,11 +258,6 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         @Override
         public void onAttach(Context context) {
             super.onAttach(context);
-            try {
-                mListener = (NoticeDialogListener) context;
-            } catch (Exception e) {
-                throw new ClassCastException(context.toString() + "must implement NoticeDialogListener");
-            }
         }
 
         @Override
@@ -286,7 +302,7 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
                         String a="";
                         a=String.valueOf(choices.getSelectedItem());
                         newGoal.setRepeatCycle(a);
-                        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray,getActivity()));
+                        goalsLayoutRV.setAdapter(new HabitsRVAdapter(goalsArray));
                         Goal.writeGoalInFile(newGoal,1);
                         dismiss();
                     }catch (NullPointerException e) {
@@ -309,7 +325,6 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
             cancelButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    mListener.OnNegativeClick(AddGoalDialog.this);
                     dismiss();
                 }
             });
@@ -327,7 +342,10 @@ public class MainActivity extends AppCompatActivity implements NoticeDialogListe
         public void onNothingSelected(AdapterView<?> parent) {
 
         }
+
     }
+
+
 
 
 

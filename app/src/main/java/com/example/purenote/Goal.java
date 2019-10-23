@@ -1,16 +1,23 @@
 package com.example.purenote;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Environment;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 
 
+import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.storage.FileDownloadTask;
@@ -25,6 +32,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -33,9 +41,18 @@ import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
+import static java.security.AccessController.getContext;
+
 //TODO ima problem s resetwaneto, sled kato e minala primerno sedmica, unchekva poleto, ama ne svalq progresa, a chak sled oshte edin restart
 
-public class Goal {
+
+public class Goal   {
+
+    interface GoalsDownloadedListener{
+        void goalsDownloaded(File file);
+    }
+
+
     private String text;
     private int completedSteps;
     private int targetSteps;
@@ -44,8 +61,10 @@ public class Goal {
     private boolean done;
     private boolean checked;
     private String lastDateChecked;
-    private StorageReference storageRef=FirebaseStorage.getInstance().getReference();
-    private FirebaseAuth mAuth=FirebaseAuth.getInstance();
+    private final StorageReference storageRef=FirebaseStorage.getInstance().getReference();
+    private final FirebaseAuth mAuth=FirebaseAuth.getInstance();
+
+    private static  GoalsDownloadedListener listener;
 
 
 
@@ -56,11 +75,17 @@ public class Goal {
         datesChecked=new ArrayList<>();
         this.checked=false;
 
+
+    }
+
+    public static void setListener(GoalsDownloadedListener newListener){
+        listener=newListener;
     }
 
     public void setLastDateChecked(String lastDateChecked) {
         this.lastDateChecked = lastDateChecked;
     }
+
 
     public String getLastDateChecked() {
         if(this.lastDateChecked==null){
@@ -128,7 +153,6 @@ public class Goal {
         return this.datesChecked;
     }
 
-
     public void removeCheckedDate(){
 
         this.datesChecked.remove(datesChecked.size()-1);
@@ -145,7 +169,6 @@ public class Goal {
 
         }
     }
-
 
     public static void writeGoalInFile(Goal goal, int code){
 
@@ -228,13 +251,14 @@ public class Goal {
     }
 
 
-
     public static ArrayList<Goal> readGoalFromFile(){
 
         File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
         File[] filesGoals=root.listFiles();
         ArrayList<String> goalString=new ArrayList<>();
         ArrayList<Goal> goalsFromFile=new ArrayList<>();
+
+
 
 
 
@@ -255,17 +279,27 @@ public class Goal {
 
 
 
+
+
+
             scan.close();
         }catch (FileNotFoundException e){
             e.printStackTrace();
             Log.i("Read from file", "File not found");
-            return new ArrayList<>();
+
 
         }
         catch (NullPointerException npe){
             npe.printStackTrace();
-            Log.i("Read goal from file","No files");
+            Log.i("Read goal from file","Scanner error");
+
+
+
+
         }
+
+
+
 
 
 
@@ -275,15 +309,9 @@ public class Goal {
 
     }
 
+
     public static Goal decode(ArrayList<String> dataFromFile){
         Goal tempGoal=null;
-
-        //First line of the txt file represents the goal and completed/target steps
-
-
-
-
-
 
         //Separating the name and the target steps
         String goalName=dataFromFile.get(0);
@@ -678,57 +706,102 @@ public class Goal {
                 });
     }
 
-    public static  void downloadFile(StorageReference reference, FirebaseAuth auth){
+    public static  Goal singleFileDecode(File file) {
+        Goal tempGoal = null;
+
+        ArrayList<String> goalString = new ArrayList<>();
+
+
+        Scanner scan = null;
+        try {
+
+            scan = new Scanner(file);
+            while (scan.hasNext()) {
+                goalString.add(scan.nextLine());
+
+            }
+            tempGoal = decode(goalString);
+            scan.close();
+
+        }catch (FileNotFoundException e){
+            e.printStackTrace();
+            Log.i("Read from file", "File not found");
+
+
+        }
+        catch (NullPointerException npe){
+            npe.printStackTrace();
+            Log.i("Read goal from file","Scanner error");
+
+        }
+
+        return tempGoal;
+    }
+
+    public static void  downloadFile(){
+
+
+            StorageReference reference=FirebaseStorage.getInstance().getReference();
+            FirebaseAuth auth=FirebaseAuth.getInstance();
 
 
 
 
 
-            final StorageReference goalRef=reference.child(auth.getCurrentUser().getUid());
+            try {
+                final StorageReference goalRef = reference.child(auth.getCurrentUser().getUid());
 
 
-
-
-               goalRef.listAll().addOnSuccessListener(new OnSuccessListener<ListResult>() {
+                goalRef.listAll()
+                        .addOnSuccessListener(new OnSuccessListener<ListResult>() {
                     @Override
                     public void onSuccess(ListResult listResult) {
                         Log.i("Download", "Items listed");
 
-                        for (StorageReference item : listResult.getItems()) {
-                            // All the items under listRef.
-                            Log.i("Download", item.toString());
 
-                        }
-                        /*
-                        for (StorageReference a:goalsList) {
-                            String objectString=a.toString();
-                            String goalString=objectString.substring(objectString.lastIndexOf("/"),objectString.lastIndexOf("."));
-                            Log.i("Download", goalString);
 
-                            try {
-                                a.getFile(File.createTempFile(goalString,"txt")).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                        if(!listResult.getItems().isEmpty()) {
+
+
+                            for (StorageReference a : listResult.getItems()) {
+                                String objectString = a.toString();
+                                String goalString = objectString.substring(objectString.lastIndexOf("/") + 1, objectString.lastIndexOf("."));
+
+
+                                File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+
+                                if (!root.exists()) {
+                                    root.mkdirs();
+                                }
+
+                                final File fileToDownload = new File(root, goalString + ".txt");
+
+
+                                a.getFile(fileToDownload)
+                                        .addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
                                     @Override
                                     public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                                        Log.i("Download", "Success");
+                                        //TODO make a simple method to read a single file to array and call it in MainActivity
+                                        listener.goalsDownloaded(fileToDownload);
+
+
 
                                     }
                                 }).addOnFailureListener(new OnFailureListener() {
                                     @Override
                                     public void onFailure(@NonNull Exception e) {
-
+                                        Log.i("Download", "Doesn't work");
                                     }
                                 });
-                            }
-                            catch (IOException ioe){
-                                ioe.printStackTrace();
-                            }
 
-
+                            }
 
                         }
 
-                         */
-
                     }
+
+
                 }).addOnFailureListener(new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
@@ -738,8 +811,10 @@ public class Goal {
                 });
 
 
-
-
+            }catch (NullPointerException npe){
+                npe.printStackTrace();
+                Log.i("DownloadFile", "Error");
+            }
 
 
 
@@ -747,6 +822,9 @@ public class Goal {
 
 
     }
+
+
+
 
 
 
