@@ -179,29 +179,18 @@ public class Goal   {
 
         String text=goal.getText();
         int targetSteps=goal.getTargetSteps();
-        FileWriter writer=null;
         String repeatCycle=goal.getRepeatCycle();
         String sFileName=text+".txt";
         boolean done=goal.isDone();
+        File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
+        if (!root.exists()) {
+            root.mkdirs();
+        }
+        File gpxfile = new File(root, sFileName);
 
 
+        try (FileWriter writer=new FileWriter(gpxfile, true)){
 
-
-
-
-
-        try {
-
-            File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
-
-            if (!root.exists()) {
-                root.mkdirs();
-            }
-
-            File gpxfile = new File(root, sFileName);
-
-
-            writer = new FileWriter(gpxfile, true);
 
             if(code==1){
                 writer.append(text);
@@ -235,9 +224,6 @@ public class Goal   {
 
 
 
-            writer.close();
-
-
         } catch (IOException e) {
             e.printStackTrace();
             Log.i("Write in file","Error IO");
@@ -262,12 +248,25 @@ public class Goal   {
 
 
 
-        Scanner scan=null;
-        try{
+
+
+
             for (File file:filesGoals) {
-                scan=new Scanner(file);
+
+                try(Scanner scan=new Scanner(file)){
                 while (scan.hasNext()){
                     goalString.add(scan.nextLine());
+
+                }
+                }catch (FileNotFoundException e){
+                    e.printStackTrace();
+                    Log.i("Read from file", "File not found");
+
+
+                }
+                catch (NullPointerException npe){
+                    npe.printStackTrace();
+                    Log.i("Read goal from file","Scanner error");
 
                 }
 
@@ -276,30 +275,6 @@ public class Goal   {
                 goalString.clear();
 
             }
-
-
-
-
-
-
-            scan.close();
-        }catch (FileNotFoundException e){
-            e.printStackTrace();
-            Log.i("Read from file", "File not found");
-
-
-        }
-        catch (NullPointerException npe){
-            npe.printStackTrace();
-            Log.i("Read goal from file","Scanner error");
-
-
-
-
-        }
-
-
-
 
 
 
@@ -476,7 +451,7 @@ public class Goal   {
         if (dir.isDirectory())
         {
             String[] children = dir.list();
-            Log.i("Direktory goal", goalName);
+            Log.i("Directory goal", goalName);
             for (int i = 0; i < children.length; i++)
             {
                 Log.i("Directory", children[i]);
@@ -489,6 +464,22 @@ public class Goal   {
             }
 
         }
+
+        StorageReference fileToDelete=this.storageRef.child(this.mAuth.getCurrentUser().getUid()+"/"+goalName);
+        fileToDelete.delete().addOnSuccessListener(new OnSuccessListener<Void>() {
+            @Override
+            public void onSuccess(Void aVoid) {
+                Log.i("Delete", "online storage: deleted");
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                Log.i("Delete", "online storage: not deleted");
+            }
+        }
+        );
+
+
         return isDeleted;
 
     }
@@ -497,7 +488,6 @@ public class Goal   {
 
         boolean result=true;
         Goal goal=Goal.this;
-        Scanner scan=null;
         ArrayList<String> goalString=new ArrayList<>();
 
         File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
@@ -508,8 +498,7 @@ public class Goal   {
 
         File file = new File(root, goal.getText()+".txt");
 
-        try{
-                scan=new Scanner(file);
+        try(Scanner scan=new Scanner(file)){
                 while (scan.hasNext()){
                     goalString.add(scan.nextLine());
 
@@ -534,10 +523,6 @@ public class Goal   {
             writer.close();
 
 
-
-
-
-            scan.close();
         }catch (FileNotFoundException e){
             result=false;
             e.printStackTrace();
@@ -562,7 +547,6 @@ public class Goal   {
     public void deleteLastDateFromFile(){
         Goal goal=Goal.this;
 
-        Scanner scan=null;
         ArrayList<String> goalString=new ArrayList<>();
 
         File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
@@ -573,8 +557,7 @@ public class Goal   {
 
         File file = new File(root, goal.getText()+".txt");
 
-        try{
-            scan=new Scanner(file);
+        try(Scanner scan=new Scanner(file)){
             while (scan.hasNext()){
                 goalString.add(scan.nextLine());
 
@@ -596,9 +579,6 @@ public class Goal   {
 
 
 
-
-
-            scan.close();
         }catch (FileNotFoundException e){
             e.printStackTrace();
             Log.i("Delete date from file", "File not found");
@@ -621,7 +601,6 @@ public class Goal   {
 
         Goal goal=Goal.this;
 
-        Scanner scan=null;
         ArrayList<String> goalString=new ArrayList<>();
 
         File root = new File(Environment.getExternalStorageDirectory(), "PureNote");
@@ -632,8 +611,7 @@ public class Goal   {
 
         File file = new File(root, goal.getText()+".txt");
 
-        try{
-            scan=new Scanner(file);
+        try(Scanner scan=new Scanner(file)){
             while (scan.hasNext()){
                 goalString.add(scan.nextLine());
 
@@ -657,8 +635,7 @@ public class Goal   {
 
 
 
-            scan.close();
-        }catch (FileNotFoundException e){
+    }catch (FileNotFoundException e){
             e.printStackTrace();
             Log.i("Delete date from file", "File not found");
 
@@ -711,11 +688,8 @@ public class Goal   {
 
         ArrayList<String> goalString = new ArrayList<>();
 
+        try (Scanner scan=new Scanner(file)){
 
-        Scanner scan = null;
-        try {
-
-            scan = new Scanner(file);
             while (scan.hasNext()) {
                 goalString.add(scan.nextLine());
 

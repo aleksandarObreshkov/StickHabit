@@ -111,7 +111,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
         if(goal.getLastDateChecked().equals(currentDate)){
             checkBox.setChecked(true);
-            checkBox.setText("All done");
+            checkBox.setText(R.string.checkbox_alldone);
             progressBar.setProgress(100);
         }else {
 
@@ -119,19 +119,19 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                 if (currentDate.equals(goal.getLastDate())) {
 
                     checkBox.setChecked(true);
-                    checkBox.setText("Done");
+                    checkBox.setText(R.string.checkbox_done);
 
 
                 } else {
 
-                    checkBox.setText("Not done");
+                    checkBox.setText(R.string.checkbox_notdone);
 
 
                 }
             } else {
 
                 checkBox.setClickable(false);
-                checkBox.setText("All done");
+                checkBox.setText(R.string.checkbox_alldone);
                 checkBox.setChecked(true);
 
             }
@@ -157,7 +157,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
                     if (isChecked) {
                         progressBar.setProgress(progress + step);
-                        buttonView.setText("Done");
+                        buttonView.setText(R.string.checkbox_done);
                         goals.get(position).addDateChecked(currentDate);
                         completedSteps+=1;
                         goals.get(position).setCompletedSteps(completedSteps);
@@ -168,7 +168,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
 
                     } else {
                         progressBar.setProgress(progress - step);
-                        buttonView.setText("Not done");
+                        buttonView.setText(R.string.checkbox_notdone);
                         goals.get(position).removeCheckedDate();
                         completedSteps-=1;
                         goal.setChecked(false);
@@ -188,7 +188,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                 }
                 else {
                     buttonView.setChecked(true);
-                    buttonView.setText("All done");
+                    buttonView.setText(R.string.checkbox_alldone);
                     goals.get(position).setDone(true);
 
 
@@ -239,6 +239,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
     }
 
 
+
     public static class  DisplayGoalDataDialog extends android.app.DialogFragment {
 
         AlertDialog.Builder builder;
@@ -279,6 +280,7 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
             builder = new AlertDialog.Builder(getActivity());
             builder.setTitle("Details");
             builder.setView(content);
+
             dialogBundle=getArguments();
 
 
@@ -324,8 +326,8 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
             progressTextView.setText(progressText);
             checkBox.setChecked(checked);
 
-            if (checkBox.isChecked())checkBox.setText("Done");
-            else checkBox.setText("Not done");
+            if (checkBox.isChecked())checkBox.setText(R.string.checkbox_done);
+            else checkBox.setText(R.string.checkbox_notdone);
             goalNameInput.getEditText().setText(goalName);
             goalNameInput.clearFocus();
 
@@ -403,14 +405,14 @@ public class HabitsRVAdapter extends RecyclerView.Adapter {
                 @Override
                 public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                     if (isChecked){
-                        checkBox.setText("Done");
+                        checkBox.setText(R.string.checkbox_done);
                         completedSteps+=1;
                         Log.i("completedSteps", completedSteps+"");
                         progressText=completedSteps+"/"+targetSteps;
                         progressTextView.setText(progressText);
                     }
                     else{
-                        checkBox.setText("Not done");
+                        checkBox.setText(R.string.checkbox_notdone);
                         completedSteps-=1;
                         Log.i("completedSteps", completedSteps+"");
                         progressText=completedSteps+"/"+targetSteps;

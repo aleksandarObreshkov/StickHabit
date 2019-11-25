@@ -2,6 +2,8 @@ package com.example.purenote;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -13,10 +15,15 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.FragmentManager;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -58,14 +65,6 @@ import java.util.concurrent.ExecutionException;
 
 
 
-
-
-
-
-
-
-
-
 public class MainActivity extends AppCompatActivity {
     static RecyclerView goalsLayoutRV;
 
@@ -79,14 +78,6 @@ public class MainActivity extends AppCompatActivity {
     FirebaseAuth mAuth=FirebaseAuth.getInstance();
     FirebaseUser user=mAuth.getCurrentUser();
     ProgressBar loadingBar;
-    private Boolean isLoading;
-
-
-
-
-
-
-
 
 
 
@@ -134,6 +125,8 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
+        else loadingBar.setVisibility(View.INVISIBLE);
+
 
 
 
@@ -148,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
         return super.onCreateOptionsMenu(menu);
     }
 
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if(item.getTitle().equals("SignOut")){
@@ -156,11 +150,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(i);
         }
 
-        if(item.getTitle().equals("Change theme")){
-            getApplicationContext().setTheme(R.style.IvaTheme);
-
-
-        }
 
 
         if(item.getTitle().equals("Refresh")){
@@ -178,6 +167,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         HabitsRVAdapter.setCurrentManager(this.getFragmentManager());
+
+
 
 
         if (user==null){
@@ -347,13 +338,6 @@ public class MainActivity extends AppCompatActivity {
 
 
 
-
-
-
-
-
-
-//TODO action bar control
 
 
 
